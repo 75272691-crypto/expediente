@@ -1,0 +1,955 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>CONSULTA DE EXPEDIENTES JUDICIALES - Poder Judicial</title>
+<style>
+:root{
+  --rojopj:#a00000; --rojohov:#c40000;
+  --azulacero:#3b5998;
+  --bg:#f3f4f6; --card:#fff; --muted:#555;
+  --res1:#ff8a00;   /* color Resolución 1 */
+  --subs:#0077b6;   /* color Subsana */
+  --res2:#2a9d8f;   /* color Resolución 2 */
+  --escrito-bg: #fff7ee;
+  --resol-bg:  #fff0f0;
+  --demanda-bg: #fffaf6;
+  --granate: #7d0020;
+  --header-height:92px;
+  --footer-height:78px;
+}
+
+/* Base */
+*{box-sizing:border-box}
+body{
+  margin:0;
+  font-family:"Segoe UI",Roboto,Arial,sans-serif;
+  background:var(--bg);
+  color:#000;
+  padding-top: calc(var(--header-height) + 12px);
+  padding-bottom: calc(var(--footer-height) + 12px);
+  -webkit-font-smoothing:antialiased;
+}
+
+/* Header fijo */
+.header-fixed{
+  position:fixed; top:0; left:0; right:0; height:var(--header-height);
+  background:var(--rojopj); color:var(--card); z-index:1400;
+  display:flex; align-items:center; gap:14px; padding:10px 18px;
+  border-bottom:3px solid #8f0000; box-shadow:0 4px 12px rgba(0,0,0,0.12);
+}
+.header-fixed .logo{display:flex;align-items:center;gap:12px;min-width:88px}
+.header-fixed .logo img{height:64px;width:auto;object-fit:contain;border-radius:6px;background:#fff;padding:4px}
+.header-fixed .titles{flex:1;display:flex;flex-direction:column;gap:4px;align-items:flex-start}
+.header-fixed .titles h1{margin:0;font-size:1.02rem;font-weight:800;letter-spacing:0.6px;color:var(--card)}
+.header-fixed .titles .subtitle{margin:0;font-size:0.86rem;opacity:0.95;font-weight:600;color:var(--card)}
+.header-fixed .rightnote{min-width:140px;text-align:right;color:var(--card);font-weight:700;font-size:0.92rem}
+
+/* nav row */
+.navrow{position:fixed;top:calc(var(--header-height));left:0;right:0;background:#fff;padding:8px 18px;display:flex;justify-content:space-between;align-items:center;box-shadow:0 1px 6px rgba(0,0,0,0.06);z-index:1350}
+.navleft{display:flex;gap:16px;align-items:center}
+.navleft a{color:var(--rojopj);text-decoration:none;font-weight:600}
+#datetime{color:#333;font-size:0.92rem}
+
+/* main offset for fixed header+nav */
+main{max-width:1200px;margin:160px auto 40px;padding:18px;position:relative}
+
+/* comunicado */
+.comunicado{background:var(--card);border:2px solid var(--rojopj);border-radius:8px;padding:16px;text-align:center;margin-bottom:18px}
+.comunicado h2{color:var(--rojopj);margin:0 0 6px 0}
+.comunicado p{color:#000;margin:6px 0}
+
+/* menu cards */
+.menu-busqueda{display:flex;gap:18px;flex-wrap:wrap;justify-content:center;margin-bottom:12px}
+.card{width:320px;background:var(--card);border-radius:10px;border:1px solid #e6e6e6;padding:18px;text-align:center;box-shadow:0 6px 18px rgba(7,13,22,0.04);cursor:pointer;transition:transform .14s, box-shadow .14s}
+.card:hover{transform:translateY(-6px); box-shadow:0 12px 28px rgba(7,13,22,0.08)}
+.card h3{margin:8px 0;color:var(--rojopj)}
+.card p{margin:6px 0;color:var(--muted)}
+
+/* forms */
+.formulario{display:none;max-width:820px;margin:18px auto;background:var(--card);padding:18px;border-radius:10px;border:1px solid #e6e6e6;box-shadow:0 6px 18px rgba(7,13,22,.04)}
+label{display:block;margin-top:10px;font-size:0.92rem;color:var(--muted)}
+input,select,textarea{width:100%;padding:10px;border-radius:8px;border:1px solid #d0d0d0;margin-top:6px;font-size:0.95rem;resize:vertical}
+.btn{display:inline-block;margin-top:14px;padding:10px 14px;border-radius:8px;background:var(--rojopj);color:#fff;border:none;cursor:pointer}
+.btn:hover{background:var(--rojohov)}
+.backbtn{background:#666;margin-left:10px}
+
+/* resultados */
+.resultados{display:none;max-width:920px;margin:26px auto;text-align:center}
+.cuadro-peq{display:inline-block;border:1.6px solid var(--rojopj);border-radius:6px;padding:8px 14px;margin:6px;background:#fff;font-weight:600}
+.cuadro-grande{border:1.6px solid var(--rojopj);border-radius:10px;padding:16px;text-align:left;background:#fff;box-shadow:0 6px 18px rgba(7,13,22,0.05);position:relative}
+.cuadro-grande p{margin:8px 0;line-height:1.25}
+
+/* lupa */
+.lupa{position:absolute;right:14px;top:12px;background:var(--rojopj);color:#fff;border:none;border-radius:50%;width:44px;height:44px;cursor:pointer;font-size:18px;box-shadow:0 6px 18px rgba(0,0,0,0.12)}
+
+/* TTS control - visible and above footer */
+.tts-control{
+  position:fixed;right:18px;bottom:calc(var(--footer-height) + 18px);
+  background:var(--rojopj);color:#fff;border-radius:50%;width:62px;height:62px;display:flex;align-items:center;justify-content:center;font-size:22px;cursor:pointer;box-shadow:0 8px 24px rgba(0,0,0,0.18);z-index:1600;
+}
+.tts-control[aria-pressed="true"]{background:var(--rojohov)}
+.tts-control:focus{outline:3px solid rgba(255,255,255,0.15)}
+
+/* volver flecha */
+#volverFlecha{display:none;position:absolute;top:-46px;right:30px;color:var(--azulacero);cursor:pointer;user-select:none;display:flex;align-items:center;gap:8px;font-weight:600;opacity:0;transform:translateY(-6px);transition:opacity .4s ease, transform .35s ease;}
+#volverFlecha.show{opacity:1;transform:translateY(0)}
+#volverFlecha .icon{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:8px;background:linear-gradient(180deg, rgba(59,89,152,0.12), rgba(59,89,152,0.06));color:var(--azulacero);font-size:18px;transition:transform .12s}
+#volverFlecha:hover{ animation:vibrar .18s linear infinite alternate; }
+@keyframes vibrar{0%{transform:translateX(0)}50%{transform:translateX(-2px)}100%{transform:translateX(2px)}}
+
+/* fingerprint */
+.fingerprint-box{border:2px dashed #d0d0d0;border-radius:8px;padding:24px;text-align:center;background:#fbfbff;box-shadow:inset 0 1px 0 rgba(0,0,0,0.02)}
+
+/* responsive */
+@media(max-width:880px){.card{width:100%}.formulario{width:100%;padding:14px}#volverFlecha{right:16px; top:-48px}}
+
+/* ---------------------------
+   REPORTE (barra, modal)
+   --------------------------- */
+#reporteExpediente{display:none; padding:20px; max-width:920px; margin:32px auto 80px}
+.reporte-header{display:flex;flex-direction:column;gap:10px;margin-bottom:14px}
+.reporte-header-row{display:flex;justify-content:space-between;align-items:center}
+.reporte-header h1{color:var(--rojopj);font-size:1.4rem;margin:0}
+.reporte-timer{display:flex;flex-direction:column;align-items:flex-end;font-size:0.95rem;color:var(--muted)}
+.reporte-timer .label{font-weight:600;color:var(--muted);font-size:0.85rem}
+.reporte-timer .count{font-weight:700;color:var(--rojopj);font-size:1.05rem}
+
+/* progress */
+.reporte-progress-wrap{width:100%;height:12px;background:linear-gradient(180deg,#f1f1f1,#eeeeee);border-radius:10px;overflow:hidden;border:1px solid rgba(0,0,0,0.04);box-shadow:inset 0 1px 0 rgba(255,255,255,0.6)}
+.reporte-progress-fill{height:100%;width:100%;background: linear-gradient(90deg,#a00000,#c40000);transition: width 0.9s linear;will-change: width}
+.reporte-progress-label{margin-top:6px;font-size:0.85rem;color:var(--muted);text-align:right}
+
+/* reporte cards */
+.reporte-card{background:var(--card);border:2px solid var(--rojopj);border-radius:10px;padding:16px 20px;margin-bottom:18px;box-shadow:0 6px 18px rgba(7,13,22,0.05)}
+.reporte-card h2{color:var(--rojopj);margin:0 0 10px 0;font-size:1.05rem;border-bottom:1px solid rgba(0,0,0,0.04);padding-bottom:8px}
+.expediente-info{display:grid;grid-template-columns:200px 1fr;row-gap:6px;column-gap:12px;font-size:0.95rem}
+.expediente-info .label{font-weight:600;color:var(--muted)}
+.table-partes{width:100%;border-collapse:collapse;margin-top:12px}
+.table-partes th,.table-partes td{border:1px solid #ccc;padding:6px 10px;font-size:0.95rem;text-align:left}
+.table-partes th{background:var(--rojopj);color:#fff}
+
+/* ---------------------------
+   SEGUIMIENTO DEL PROCESO
+   --------------------------- */
+.seguimiento-card{
+  background:var(--card);
+  border:2px solid var(--rojopj);
+  border-radius:10px;
+  padding:14px;
+  margin-bottom:18px;
+  box-shadow:0 6px 18px rgba(7,13,22,0.05);
+}
+.seguimiento-card h2{color:var(--rojopj);margin:0 0 12px 0;font-size:1.05rem;border-bottom:1px solid rgba(0,0,0,0.04);padding-bottom:8px}
+
+/* INDICE (sub-cuadro) */
+.indice-box{border:1.6px solid var(--rojopj);background:#fff;border-radius:8px;padding:10px 12px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;box-shadow:0 6px 12px rgba(7,13,22,0.04)}
+.indice-box .titulo{font-weight:700;color:var(--rojopj);font-size:0.95rem}
+.indice-box .detalle{color:var(--muted);font-size:0.9rem}
+
+/* índice list layout */
+.indice-list{display:flex;flex-direction:column;gap:10px;margin-top:12px}
+.indice-item{display:flex;gap:12px;align-items:flex-start;padding:12px;border-radius:8px;border:1px solid #eee;background:#fff;box-shadow:0 6px 12px rgba(7,13,22,0.03)}
+.indice-item .num{min-width:36px;height:36px;border-radius:8px;background:#f7f7f7;color:#333;display:flex;align-items:center;justify-content:center;font-weight:700;border:1px solid #eee}
+.indice-item .content{flex:1;text-align:left}
+.indice-item .title{font-weight:800;color:#333;display:flex;align-items:center;gap:8px}
+.indice-item .meta{color:var(--muted);font-size:0.92rem;margin-top:6px}
+
+/* badges distintivos */
+.badge-type{font-size:0.78rem;padding:6px 8px;border-radius:999px;color:#fff;font-weight:700;margin-right:6px}
+.badge-demanda{background:var(--rojopj)}
+.badge-res1{background:var(--res1); color:#2b1200}
+.badge-subs{background:var(--subs)}
+.badge-res2{background:var(--res2); color:#00332a}
+.badge-escrito{background:#b36b00}
+.badge-resol{background:#a94442}
+
+/* left accent (bigger) for each item for quick visual scan */
+.indice-item[data-type="demanda"]{border-left:6px solid var(--rojopj); background:var(--demanda-bg)}
+.indice-item[data-type="res1"]{border-left:6px solid var(--res1); background: #fff6f0}
+.indice-item[data-type="subsana"]{border-left:6px solid var(--subs); background: #f2fbff}
+.indice-item[data-type="res2"]{border-left:6px solid var(--res2); background: #f2fff7}
+.indice-item[data-type="escrito"]{border-left:6px solid #b36b00; background: var(--escrito-bg)}
+.indice-item[data-type="resolucion"]{border-left:6px solid #a94442; background: var(--resol-bg)}
+
+/* action button */
+.doc-open-btn{background:transparent;border:1px solid rgba(0,0,0,0.06);cursor:pointer;padding:8px;border-radius:8px;display:inline-flex;align-items:center;gap:10px}
+.doc-open-btn .icon{width:44px;height:44px;display:inline-flex;align-items:center;justify-content:center;border-radius:8px;background:linear-gradient(180deg,#fafafa,#f2f2f2);box-shadow:0 2px 6px rgba(0,0,0,0.06)}
+.doc-open-btn .label{font-size:0.85rem;color:var(--muted);font-weight:700}
+
+/* Visor overlay (GRANDE) */
+#docViewerOverlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.65);z-index:3000;align-items:center;justify-content:center;padding:20px}
+#docViewer{width:96%;max-width:1240px;height:92vh;background:#fff;border-radius:10px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.45)}
+#docViewerHeader{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-bottom:1px solid #eee;background:#fafafa}
+#docViewerTitle{font-weight:700;color:#333}
+#docViewerActions{display:flex;gap:8px;align-items:center}
+#docViewerClose,#docViewerOpenNew{background:transparent;border:1px solid #ddd;padding:8px 10px;border-radius:8px;cursor:pointer}
+#docViewerFrame{flex:1;border:0;width:100%;height:100%}
+
+/* timeout modal */
+#timeoutOverlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:4000;align-items:center;justify-content:center;padding:20px}
+#timeoutModal{background:var(--card);border-radius:10px;padding:18px 20px;width:420px;max-width:92%;box-shadow:0 10px 30px rgba(0,0,0,0.25);text-align:left;border-left:6px solid var(--rojopj)}
+#timeoutModal h3{margin:0 0 8px 0;color:var(--rojopj);font-size:1.05rem}
+#timeoutModal p{margin:0 0 12px 0;color:#333}
+#timeoutModal .modal-actions{display:flex;justify-content:flex-end;gap:8px}
+#timeoutModal .okbtn{background:var(--rojopj);color:#fff;border:none;padding:8px 12px;border-radius:8px;cursor:pointer;font-weight:600}
+#timeoutModal .okbtn:hover{background:var(--rojohov)}
+#timeoutModal .secondary{background:#f2f2f2;border:1px solid #ddd;padding:8px 12px;border-radius:8px;cursor:pointer}
+
+/* footer fijo compacto */
+.footer-fixed{
+  position:fixed; left:0; right:0; bottom:0; height:var(--footer-height);
+  background:var(--rojopj); color:var(--card); z-index:1200; display:flex; align-items:center; justify-content:center; text-align:center; padding:10px 16px; border-top:3px solid #8f0000;
+  box-shadow:0 -4px 12px rgba(0,0,0,0.10); font-weight:600;
+}
+.footer-fixed .center-text{font-family:"Times New Roman", Times, serif; white-space:pre-line; font-size:0.86rem; line-height:1.22; color:var(--card); max-width:980px;}
+
+/* small screens */
+@media(max-width:720px){
+  .header-fixed .logo img{height:52px}
+  .header-fixed{height:120px}
+  main{margin:150px auto 120px}
+  #docViewer{width:96%;height:88vh}
+}
+</style>
+</head>
+<body>
+
+  <!-- ENCABEZADO FIJO -->
+  <header class="header-fixed" role="banner" aria-hidden="false">
+    <div class="logo" aria-hidden="false">
+      <img src="https://sap.pj.gob.pe/renaju-web/assets/img/lpt-m.png" alt="Logo Poder Judicial - Lateral" />
+    </div>
+    <div class="titles" role="heading" aria-level="1">
+      <h1>PODER JUDICIAL DEL PERÚ</h1>
+      <div class="subtitle">Justicia Honorable, País Respetable</div>
+    </div>
+    <div class="rightnote">CONSULTA DE EXPEDIENTES JUDICIALES</div>
+  </header>
+
+  <!-- NAV -->
+  <div class="navrow" id="navrow" role="navigation" aria-label="Barra de navegación">
+    <div class="navleft">
+      <a href="#" title="Inicio">INICIO</a>
+      <a href="videotutoriales.html" title="Videotutoriales">VIDEOTUTORIALES</a>
+      <a href="preguntas.html" title="Preguntas frecuentes">PREGUNTAS FRECUENTES</a>
+    </div>
+    <div id="datetime" aria-live="polite">Fecha: --/--/---- Hora: --:--:--</div>
+  </div>
+
+  <main id="mainContent">
+    <div id="volverFlecha" role="button" aria-hidden="true" title="Volver al menú principal">
+      <div class="icon">←</div><div style="color:#333">Volver</div>
+    </div>
+
+    <section id="comunicado" class="comunicado" role="region" aria-label="Comunicado institucional">
+      <h2>COMUNICADO</h2>
+      <p>A partir de la fecha, se ha incluido un nuevo campo como medida técnica de protección, para que solo las partes puedan acceder a sus expedientes; a requerimiento de la Autoridad Nacional de Protección de Datos Personales y la Dirección de Fiscalización e Instrucción del Ministerio de Justicia y Derechos Humanos - MINJUSDH.</p>
+      <p>Al amparo de la Ley N° 29733, Ley de Protección de Datos Personales.</p>
+    </section>
+
+    <!-- Menu principal -->
+    <section id="menuPrincipal" class="menu-busqueda" aria-label="Modalidades de búsqueda">
+      <div class="card" id="openFiltros" role="button" tabindex="0" aria-pressed="false" aria-label="Buscar por filtros">
+        <h3>🔎 BÚSQUEDA POR FILTROS</h3>
+        <p>Distrito, instancia, especialidad, año, parte o N° expediente</p>
+      </div>
+
+      <div class="card" id="openCodigo" role="button" tabindex="0" aria-pressed="false" aria-label="Buscar por código">
+        <h3>📄 BÚSQUEDA POR CÓDIGO</h3>
+        <p>Ingrese el código exacto del expediente</p>
+      </div>
+
+      <div class="card" id="openHuella" role="button" tabindex="0" aria-pressed="false" aria-label="Buscar por huella">
+        <h3>🖐️ BÚSQUEDA POR HUELLA DIGITAL</h3>
+        <p>Autentique con RENIEC / ID GOB.PE (simulado)</p>
+      </div>
+    </section>
+
+    <!-- FORMS (igual que antes) -->
+    <section id="formFiltros" class="formulario" aria-hidden="true">
+      <h3 style="color:var(--rojopj)">🔎 BÚSQUEDA POR FILTROS</h3>
+      <label for="distrito">Distrito Judicial (*)</label>
+      <select id="distrito"><option value="">--SELECCIONAR--</option><option>PUNO</option><option>LIMA</option><option>AREQUIPA</option></select>
+      <label for="instancia">Instancia (*)</label>
+      <select id="instancia"><option value="">--SELECCIONAR--</option><option>2° JUZGADO CIVIL</option><option>1° JUZGADO PENAL</option></select>
+      <label for="especialidad">Especialidad (*)</label>
+      <select id="especialidad"><option value="">--SELECCIONAR--</option><option>CIVIL</option><option>PENAL</option></select>
+      <label for="anio">Año (*)</label>
+      <select id="anio"><option value="">--SELECCIONAR--</option><option>2013</option><option>2023</option><option>2024</option><option>2025</option></select>
+      <label for="nexp">N° Expediente (*)</label>
+      <input id="nexp" placeholder="01387-2013-0-2101-JM-CI-02" />
+      <label for="parte">Parte (*)</label>
+      <input id="parte" placeholder="APELLIDO PATERNO Y APELLIDO MATERNO O RAZÓN SOCIAL" />
+      <div style="text-align:center">
+        <button class="btn" id="consultarFiltro">CONSULTAR</button>
+        <button class="btn backbtn" id="volverFiltro">← VOLVER</button>
+      </div>
+    </section>
+
+    <section id="formCodigo" class="formulario" aria-hidden="true">
+      <h3 style="color:var(--rojopj)">📄 BÚSQUEDA POR CÓDIGO</h3>
+      <label for="codigo">N° Expediente (*)</label>
+      <input id="codigo" placeholder="01387-2013-0-2101-JM-CI-02" value="01387-2013-0-2101-JM-CI-02"/>
+      <label>Escriba el código mostrado:</label>
+      <div style="display:flex;align-items:center;justify-content:center;margin-top:8px;margin-bottom:8px">
+        <div id="captcha" style="font-weight:700;letter-spacing:2px;background:#f2f2f2;padding:8px 12px;border-radius:6px">4RJEGG</div>
+      </div>
+      <input id="captchaInput" placeholder="Ingrese el código mostrado"/>
+      <div style="text-align:center">
+        <button class="btn" id="consultarCodigo">CONSULTAR</button>
+        <button class="btn backbtn" id="volverCodigo">← VOLVER</button>
+      </div>
+    </section>
+
+    <section id="formHuella" class="formulario" aria-hidden="true">
+      <h3 style="color:var(--rojopj)">🖐️ BÚSQUEDA POR HUELLA DIGITAL</h3>
+      <div class="fingerprint-box" role="region" aria-label="Lector biométrico simulado">
+        <p style="margin:6px 0 12px 0;color:var(--muted)">Coloque su huella digital en el lector</p>
+        <div style="font-size:44px; color:var(--muted); margin-bottom:8px">🟦</div>
+        <p style="margin:0;color:#333;font-weight:600">Lector biométrico (simulado)</p>
+        <p style="margin-top:10px;color:var(--muted)">En la versión real se interoperaría con RENIEC / ID GOB.PE</p>
+      </div>
+      <div style="text-align:center">
+        <button class="btn" id="verificarHuella">VERIFICAR HUELLA</button>
+        <button class="btn backbtn" id="volverHuella">← VOLVER</button>
+      </div>
+    </section>
+
+    <!-- RESULTADOS -->
+    <section id="resultados" class="resultados" aria-hidden="true" aria-live="polite">
+      <h2 style="color:var(--rojopj)">RESULTADOS DE LA BÚSQUEDA</h2>
+      <div>
+        <span class="cuadro-peq" id="peq1">Expedientes encontrados: 1</span>
+        <span class="cuadro-peq" id="peq2">Coincidencia de datos de la parte: 1</span>
+      </div>
+      <br>
+      <div class="cuadro-grande" role="article" aria-label="Detalle del expediente">
+        <button class="lupa" id="abrirExpediente" aria-label="Abrir detalle del expediente">🔍</button>
+        <p><strong>01387-2013-0-2101-JM-CI-02</strong> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <em>2° JUZGADO CIVIL - SEDE CENTRAL PUNO</em></p>
+        <p><strong>DEMANDADO:</strong> FABRE FLORES CAROL MILAGROS, REP POR ISABEL JACINTA FLORES MAMANI.</p>
+        <p><strong>DEMANDADO:</strong> FABRE FLORES, CAROL MILAGROS.</p>
+        <p><strong>DEMANDADO:</strong> FABRE FLORES, CRISTHIAN JHAN MARCOS HEREDERO LEGAL DE JUVENAL FABRE SOLIS.</p>
+        <p><strong>DEMANDADO:</strong> FABRE FLORES, EDDY FERNANDO HEREDERO DE JUVENAL FABRE SOLIS.</p>
+        <p><strong>DEMANDANTE:</strong> MANCHEGO MILIO, LOURDES Y OTRO.</p>
+        <p><strong>DEMANDANTE:</strong> FABRE MANCHEGO, SEBASTHIAN.</p>
+      </div>
+      <br>
+      <div class="cuadro-peq">Se ha encontrado: 1 registro.</div>
+    </section>
+
+  </main>
+
+  <!-- REPORTE (misma página) -->
+  <section id="reporteExpediente" aria-hidden="true" role="region">
+    <div class="reporte-header">
+      <div class="reporte-header-row">
+        <h1>REPORTE DE EXPEDIENTE</h1>
+        <div style="display:flex;gap:12px;align-items:center">
+          <div class="reporte-timer" aria-live="polite" role="status" id="reporteTimerArea">
+            <div class="label">Tiempo restante</div>
+            <div class="count" id="reporteTimer">05:00</div>
+          </div>
+          <div>
+            <button class="btn" id="volverReporteBtn" aria-label="Volver a la búsqueda">← Volver</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="reporte-progress-wrap" aria-hidden="false" aria-label="Barra de progreso del tiempo restante">
+        <div class="reporte-progress-fill" id="reporteProgressFill" role="progressbar" aria-valuemin="0" aria-valuemax="300" aria-valuenow="300" aria-valuetext="5 minutos restantes"></div>
+      </div>
+      <div class="reporte-progress-label" id="reporteProgressLabel">100% — 5:00</div>
+    </div>
+
+    <!-- Info expediente -->
+    <div class="reporte-card" role="article" aria-label="Información del Expediente">
+      <h2>Información del Expediente</h2>
+      <div class="expediente-info">
+        <div class="label">Expediente N°:</div><div>01387-2013-0-2101-JM-CI-02</div>
+        <div class="label">Órgano Jurisdiccional:</div><div>2° JUZGADO CIVIL - SEDE CENTRAL PUNO</div>
+        <div class="label">Distrito Judicial:</div><div>PUNO</div>
+        <div class="label">Juez:</div><div>MARTHA IRENE AGUILAR CASTILLO</div>
+        <div class="label">Especialista Legal:</div><div>ROMERO CACHICATARI ARIUM</div>
+        <div class="label">Fecha de Inicio:</div><div>23/07/2013</div>
+        <div class="label">Proceso:</div><div>CONOCIMIENTO</div>
+        <div class="label">Observación:</div><div>NO ADJUNTA TASA JUDICIAL</div>
+        <div class="label">Especialidad:</div><div>CIVIL</div>
+        <div class="label">Materia(s):</div><div>PETICION Y/O EXCLUSION DE HERENCIA</div>
+        <div class="label">Estado:</div><div>ARCHIVO DEFINITIVO</div>
+        <div class="label">Etapa Procesal:</div><div>GENERAL</div>
+        <div class="label">Fecha Conclusión:</div><div>--------</div>
+        <div class="label">Ubicación:</div><div>ESPECIALISTA</div>
+        <div class="label">Motivo Conclusión:</div><div>--------</div>
+        <div class="label">Sumilla:</div><div>DEMANDA PETICION DE HERENCIA</div>
+      </div>
+    </div>
+
+    <!-- Partes procesales -->
+    <div class="reporte-card" role="region" aria-label="Partes procesales">
+      <h2>Partes Procesales</h2>
+      <table class="table-partes">
+        <thead>
+          <tr>
+            <th>Parte</th><th>Tipo de Persona</th><th>Apellido Paterno</th><th>Apellido Materno</th><th>Nombres</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>DEMANDADO</td><td>NATURAL</td><td>FABRE</td><td>FLORES</td><td>EDDY FERNANDO HEREDERO DE JUVENAL FABRE</td></tr>
+          <tr><td>DEMANDADO</td><td>NATURAL</td><td>FABRE</td><td>FLORES</td><td>CRISTHIAN JHAN MARCOS HEREDERO DE JUVENAL FABRE</td></tr>
+          <tr><td>DEMANDADO</td><td>NATURAL</td><td>FABRE</td><td>FLORES</td><td>CAROL MILAGROS HEREDERO DE JUVENAL FABRE</td></tr>
+          <tr><td>DEMANDANTE</td><td>NATURAL</td><td>FABRE</td><td>MANCHEGO</td><td>SEBASTHIAN HEREDERO DE JUVENAL FABRE</td></tr>
+          <tr><td>DEMANDANTE</td><td>NATURAL</td><td>MANCHEGO</td><td>MILIO</td><td>LOURDES Y OTRO</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Seguimiento del Proceso -->
+    <div class="seguimiento-card" role="region" aria-label="Seguimiento del Proceso">
+      <h2>Seguimiento del Proceso</h2>
+
+      <!-- INDICE -->
+      <div class="indice-box" role="article" aria-label="Índice del Expediente">
+        <div>
+          <div class="titulo">Índice del Expediente</div>
+          <div class="detalle">Listado de actos y documentos principales (orden cronológico).</div>
+        </div>
+        <div style="text-align:right">
+          <div class="detalle" style="font-weight:700;color:#333">Total: 17 ítems</div>
+        </div>
+      </div>
+
+      <div class="indice-list" aria-live="polite">
+        <!-- Items: cada uno tiene badge, color, acción -->
+        <div class="indice-item" data-type="demanda" role="article" aria-label="Ítem 1 - Demanda">
+          <div class="num">1</div>
+          <div class="content">
+            <div class="title"><span class="badge-type badge-escrito">Escrito</span> Demanda </div>
+            <div class="meta">Documento principal. Fecha: 23/07/2013.</div>
+          </div>
+          <div class="action">
+            <button class="doc-open-btn" data-url="https://drive.google.com/file/d/1k3tsceErcFuIPg98_PTQbPek-tS5lVnM/view?usp=sharing" aria-label="Abrir Demanda">
+              <span class="icon" aria-hidden="true">📄</span><span class="label">Abrir</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="indice-item" data-type="res1" role="article" aria-label="Ítem 2 - Resolución N1">
+          <div class="num">2</div>
+          <div class="content">
+            <div class="title"><span class="badge-type badge-resol">Resolución N° 1</span> Auto de inadmisibilidad</div>
+            <div class="meta">Fecha: 02/08/2013. Sumilla: AUTO. Fojas: 2.</div>
+          </div>
+          <div class="action">
+            <button class="doc-open-btn" data-url="https://drive.google.com/file/d/1GseuwcrYSc3PNEoobVDM0ylSOOXopgvt/view" aria-label="Abrir Resolución N1">
+              <span class="icon" aria-hidden="true">🧾</span><span class="label">Abrir</span>
+            </button>
+          </div>
+        </div>
+
+<div class="indice-item" data-type="subsana" role="article" aria-label="Ítem 3 - Subsana Omisión">
+  <div class="num">3</div>
+  <div class="content">
+    <div class="title"><span class="badge-type badge-escrito">Escrito</span> Subsana Omisión</div>
+    <div class="meta">Fecha ingreso: 12/08/2013 14:19. Folios:3. Sumilla: SUBSANA OMISIÓN.</div>
+  </div>
+  <div class="action">
+    <button class="doc-open-btn" data-url="https://drive.google.com/file/d/1v2Gbj15zL1hGgTPJA8Y3WWTIVHY1YVYL/view?usp=sharing" aria-label="Abrir Subsana Omisión">
+      <span class="icon" aria-hidden="true">🧾</span><span class="label">Abrir</span>
+    </button>
+  </div>
+</div>
+
+
+
+        <div class="indice-item" data-type="res2" role="article" aria-label="Ítem 4 - Resolución N2">
+          <div class="num">4</div>
+          <div class="content">
+            <div class="title"><span class="badge-type badge-resol">Resolución N° 2</span> Auto admisorio</div>
+            <div class="meta">Fecha: 14/08/2013. Sumilla: ADMITIR A TRÁMITE LA DEMANDA.</div>
+          </div>
+          <div class="action">
+            <button class="doc-open-btn" data-url="https://drive.google.com/file/d/1M0195-of_izxl6C2oSy2egqJ9aKhtGUX/view" aria-label="Abrir Resolución N2">
+              <span class="icon" aria-hidden="true">🧾</span><span class="label">Abrir</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Resto de items (5..17) con sus links y comportamientos habituales -->
+        <div class="indice-item" data-type="escrito" role="article" aria-label="Ítem 5 - Vario Domicilio">
+          <div class="num">5</div>
+          <div class="content">
+            <div class="title"><span class="badge-type badge-escrito">Escrito</span> Vario Domicilio Procesal</div>
+            <div class="meta">Fecha ingreso: 03/09/2013 16:29. Folios:2. Sumilla: VARIO DOMICILIO PROCESAL.</div>
+          </div>
+          <div class="action">
+            <button class="doc-open-btn" data-url="https://drive.google.com/file/d/1eOdTYt1mHHvaKRdCVwyly2tJ0coiESjd/view?usp=sharing" aria-label="Abrir Vario Domicilio">
+              <span class="icon" aria-hidden="true">📄</span><span class="label">Abrir</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="indice-item" data-type="escrito" role="article" aria-label="Ítem 6 - Amplia Demanda">
+          <div class="num">6</div>
+          <div class="content">
+            <div class="title"><span class="badge-type badge-escrito">Escrito</span> Amplia Demanda</div>
+            <div class="meta">Fecha ingreso: 03/09/2013 16:32. Folios:7. Sumilla: AMPLIA DEMANDA.</div>
+          </div>
+          <div class="action">
+            <button class="doc-open-btn" data-url="https://drive.google.com/file/d/1opgWvWg0NSDLYrFAJ4brjeTGOkty0IDP/view?usp=sharing" aria-label="Abrir Amplia Demanda">
+              <span class="icon" aria-hidden="true">📄</span><span class="label">Abrir</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="indice-item" data-type="resolucion" role="article" aria-label="Ítem 7 - Resolución N3">
+          <div class="num">7</div>
+          <div class="content">
+            <div class="title"><span class="badge-type badge-resol">Resolución N° 3</span> Por ampliado la Demanda</div>
+            <div class="meta">Fecha: 06/09/2013. Sumilla: POR AMPLIADO LA DEMANDA.</div>
+          </div>
+          <div class="action">
+            <button class="doc-open-btn" data-url="https://drive.google.com/file/d/1oNMBwqXVUQk-6tNPXwa3GkDWCZ636urN/view?usp=sharing" aria-label="Abrir Resolución N3">
+              <span class="icon" aria-hidden="true">🧾</span><span class="label">Abrir</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="indice-item" data-type="escrito" role="article" aria-label="Ítem 8 - Contestación">
+          <div class="num">8</div>
+          <div class="content">
+            <div class="title"><span class="badge-type badge-escrito">Escrito</span> Contestación de la demanda</div>
+            <div class="meta">Fecha ingreso: 30/09/2013. Folios:7. Proveído:15/10/2013.</div>
+          </div>
+          <div class="action">
+            <button class="doc-open-btn" data-url="https://drive.google.com/file/d/1Bf6LADRGxv832kpLmbCTGw4UNd_ceEOG/view?usp=sharing" aria-label="Abrir Contestación">
+              <span class="icon" aria-hidden="true">📄</span><span class="label">Abrir</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="indice-item" data-type="resolucion" role="article" aria-label="Ítem 9 - Resolución N4">
+          <div class="num">9</div>
+          <div class="content">
+            <div class="title"><span class="badge-type badge-resol">Resolución N° 4 </span> </div>
+            <div class="meta">Fecha: 15/10/2013. Sumilla: DAR POR ABSUELTO EL TRASLADO DE LA DEMANDA.</div>
+          </div>
+          <div class="action">
+            <button class="doc-open-btn" data-url="https://drive.google.com/file/d/1l_lGy2fKHPzis_HTjBiuA6O217IB2_dx/view" aria-label="Abrir Resolución N4">
+              <span class="icon" aria-hidden="true">🧾</span><span class="label">Abrir</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="indice-item" data-type="escrito" role="article" aria-label="Ítem 10 - Solicitud Saneamiento">
+          <div class="num">10</div>
+          <div class="content">
+            <div class="title"><span class="badge-type badge-escrito">Escrito</span> Solicitud auto de saneamiento</div>
+            <div class="meta">Fecha ingreso: 18/10/2013. Folios:1. Proveído:27/10/2013.</div>
+          </div>
+          <div class="action">
+            <button class="doc-open-btn" data-url="https://drive.google.com/file/d/15c6USiwPoyLL4Y25PzDMMNfbgsFrSZZj/view?usp=sharing" aria-label="Abrir Solicitud Saneamiento">
+              <span class="icon" aria-hidden="true">📄</span><span class="label">Abrir</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="indice-item" data-type="resolucion" role="article" aria-label="Ítem 11 - Resolución N5">
+          <div class="num">11</div>
+          <div class="content">
+            <div class="title"><span class="badge-type badge-resol">Resolución N° 5</span> </div>
+            <div class="meta">Fecha: 27/10/2013. Sumilla: NO HA LUGAR A SU PEDIDO.</div>
+          </div>
+          <div class="action">
+            <button class="doc-open-btn" data-url="https://drive.google.com/file/d/1ggYpPCJndH79BgI-HjluH6xiR4lxjIPE/view" aria-label="Abrir Resolución N5">
+              <span class="icon" aria-hidden="true">🧾</span><span class="label">Abrir</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="indice-item" data-type="resolucion" role="article" aria-label="Ítem 12 - Resolución N6">
+          <div class="num">12</div>
+          <div class="content">
+            <div class="title"><span class="badge-type badge-resol">Resolución N° 6</span> Auto que declara rebeldía</div>
+            <div class="meta">Fecha: 11/11/2013. Sumilla: DECLARAR REBELDE A LOS DEMANDADOS.</div>
+          </div>
+          <div class="action">
+            <button class="doc-open-btn" data-url="https://drive.google.com/file/d/1TQoUdq7aga7BjbtwEjdpZukxzFM-aLrP/view" aria-label="Abrir Resolución N6">
+              <span class="icon" aria-hidden="true">🧾</span><span class="label">Abrir</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="indice-item" data-type="resolucion" role="article" aria-label="Ítem 13 - Resolución N7">
+          <div class="num">13</div>
+          <div class="content">
+            <div class="title"><span class="badge-type badge-resol">Resolución N° 7 </span> Auto de Saneamiento</div>
+            <div class="meta">Fecha: 13/01/2014. Sumilla: AUTO DE SANEAMIENTO.</div>
+          </div>
+          <div class="action">
+            <button class="doc-open-btn" data-url="https://drive.google.com/file/d/1euOSsa5pIu2XPa3UTXkqpRoVLks1heb1/view" aria-label="Abrir Resolución N7">
+              <span class="icon" aria-hidden="true">🧾</span><span class="label">Abrir</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="indice-item" data-type="escrito" role="article" aria-label="Ítem 14 - Fijación">
+          <div class="num">14</div>
+          <div class="content">
+            <div class="title"><span class="badge-type badge-escrito">Escrito</span> Fijación de Puntos controvertidos (Demandante)</div>
+            <div class="meta">Fecha ingreso: 17/01/2014. Sumilla: FIJACIÓN DE PUNTOS CONTROVERTIDOS.</div>
+          </div>
+          <div class="action">
+            <button class="doc-open-btn" data-url="https://drive.google.com/file/d/1ZTMVpPAoy5TiLLg5TbWBMENM2diy-F3P/view?usp=sharing" aria-label="Abrir Fijación">
+              <span class="icon" aria-hidden="true">📄</span><span class="label">Abrir</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="indice-item" data-type="resolucion" role="article" aria-label="Ítem 15 - Resolución N8">
+          <div class="num">15</div>
+          <div class="content">
+            <div class="title"><span class="badge-type badge-resol">Resolución N° 8</span> </div>
+            <div class="meta">Fecha: 23/01/2014. Sumilla: INGRESEN AUTOS A DESPACHO.</div>
+          </div>
+          <div class="action">
+            <button class="doc-open-btn" data-url="https://drive.google.com/file/d/16Srj0YWC4LXjVR6YyxadN3tUQiXBcTti/view" aria-label="Abrir Resolución N8">
+              <span class="icon" aria-hidden="true">🧾</span><span class="label">Abrir</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="indice-item" data-type="resolucion" role="article" aria-label="Ítem 16 - Resolución N9">
+          <div class="num">16</div>
+          <div class="content">
+            <div class="title"><span class="badge-type badge-resol">Resolución N° 9</span> Fijación de Puntos Controvertidos</div>
+            <div class="meta">Fecha: 20/02/2014. Sumilla: FIJACIÓN DE PUNTOS CONTROVERTIDOS.</div>
+          </div>
+          <div class="action">
+            <button class="doc-open-btn" data-url="https://drive.google.com/file/d/17hSe6gfBHNqvgk0wZ29dCER60Wp4jWnl/view" aria-label="Abrir Resolución N9">
+              <span class="icon" aria-hidden="true">🧾</span><span class="label">Abrir</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="indice-item" data-type="resolucion" role="article" aria-label="Ítem 17 - Resolución N10 Sentencia">
+          <div class="num">17</div>
+          <div class="content">
+            <div class="title"><span class="badge-type badge-resol">Resolución N° 10</span> Sentencia</div>
+            <div class="meta">Fecha: 20/07/2014. Sumilla: SENTENCIA.</div>
+          </div>
+          <div class="action">
+            <button class="doc-open-btn" data-url="https://drive.google.com/file/d/18H3in98Mob8CczB4V-YEEvwsNLSxvtjQ/view" aria-label="Abrir Sentencia">
+              <span class="icon" aria-hidden="true">📄</span><span class="label">Abrir</span>
+            </button>
+          </div>
+        </div>
+
+      </div><!-- end indice-list -->
+
+    </div><!-- end seguimiento-card -->
+  </section>
+
+  <!-- Footer fijo -->
+  <footer class="footer-fixed" role="contentinfo" aria-label="Pie de página institucional">
+    <div class="center-text">
+Av. Paseo de la República S/N Palacio de Justicia, Cercado, Lima - Perú
+Copyright © - 2016 Todos los derechos reservados
+Recomendado para Chrome, Mozilla Firefox, IExplorer 9 o versiones superiores
+    </div>
+  </footer>
+
+  <!-- TTS (lector) -->
+  <div class="tts-control" id="ttsToggle" aria-pressed="false" title="Activar lectura en voz alta">🔊</div>
+
+  <!-- Doc viewer overlay (GRANDE) -->
+  <div id="docViewerOverlay" role="dialog" aria-hidden="true" aria-label="Visor de documento">
+    <div id="docViewer" role="document">
+      <div id="docViewerHeader">
+        <div id="docViewerTitle">Documento</div>
+        <div id="docViewerActions">
+          <button id="docViewerOpenNew" title="Abrir en nueva pestaña">Abrir en nueva pestaña</button>
+          <button id="docViewerClose" aria-label="Cerrar visor">Cerrar</button>
+        </div>
+      </div>
+      <iframe id="docViewerFrame" title="Visor de documento" allowfullscreen></iframe>
+    </div>
+  </div>
+
+  <!-- Timeout modal -->
+  <div id="timeoutOverlay" role="presentation" aria-hidden="true">
+    <div id="timeoutModal" role="alertdialog" aria-labelledby="timeoutTitle" aria-describedby="timeoutDesc" tabindex="-1">
+      <h3 id="timeoutTitle">Tiempo de Espera Agotado</h3>
+      <p id="timeoutDesc">Ha excedido el tiempo de espera permitido para esta página.</p>
+      <div class="modal-actions">
+        <button class="secondary" id="timeoutClose">Cerrar</button>
+        <button class="okbtn" id="timeoutOk">Aceptar</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+/* Fecha/hora dinámica */
+function updateDateTime(){ const now=new Date(); document.getElementById('datetime').textContent = `Fecha: ${now.toLocaleDateString('es-PE')} Hora: ${now.toLocaleTimeString('es-PE')}`; }
+setInterval(updateDateTime,1000); updateDateTime();
+
+/* elementos */
+const menu = document.getElementById('menuPrincipal');
+const comunicado = document.getElementById('comunicado');
+const forms = { filtros: document.getElementById('formFiltros'), codigo: document.getElementById('formCodigo'), huella: document.getElementById('formHuella') };
+const resultados = document.getElementById('resultados');
+const volverFlecha = document.getElementById('volverFlecha');
+const topbar = document.querySelector('.header-fixed');
+const navrow = document.getElementById('navrow');
+const mainContent = document.getElementById('mainContent');
+const reporte = document.getElementById('reporteExpediente');
+const reporteTimerEl = document.getElementById('reporteTimer');
+const reporteProgressFill = document.getElementById('reporteProgressFill');
+const reporteProgressLabel = document.getElementById('reporteProgressLabel');
+
+/* visor */
+const docViewerOverlay = document.getElementById('docViewerOverlay');
+const docViewerFrame = document.getElementById('docViewerFrame');
+const docViewerClose = document.getElementById('docViewerClose');
+const docViewerOpenNew = document.getElementById('docViewerOpenNew');
+const docViewerTitle = document.getElementById('docViewerTitle');
+
+/* timeout modal */
+const timeoutOverlay = document.getElementById('timeoutOverlay');
+const timeoutModal = document.getElementById('timeoutModal');
+const timeoutOk = document.getElementById('timeoutOk');
+const timeoutClose = document.getElementById('timeoutClose');
+
+/* timer vars */
+let reporteTimerInterval = null;
+let reporteRemainingSeconds = 0;
+let reporteTotalSeconds = 0;
+let autoReturnTimeoutHandle = null;
+
+/* navigation stack for back button */
+let viewStack = [];
+let currentView = 'menu';
+function pushView(v){ if(currentView && v !== currentView) viewStack.push(currentView); currentView = v; updateBackBtn(); }
+function popView(){ const prev = viewStack.pop(); currentView = prev || 'menu'; updateBackBtn(); return prev || 'menu'; }
+function updateBackBtn(){ if(viewStack.length>0){ volverFlecha.style.display='flex'; volverFlecha.setAttribute('aria-hidden','false'); setTimeout(()=>volverFlecha.classList.add('show'),30); } else { volverFlecha.classList.remove('show'); setTimeout(()=>{ volverFlecha.style.display='none'; volverFlecha.setAttribute('aria-hidden','true'); },260); } }
+
+/* vistas helpers */
+function hideAllForms(){ Object.values(forms).forEach(f => { if(f){ f.style.display='none'; f.setAttribute('aria-hidden','true'); } }); }
+function showMenu(push=true){
+  if(push) pushView('menu');
+  mainContent.style.display='block'; mainContent.setAttribute('aria-hidden','false');
+  menu.style.display='flex'; menu.setAttribute('aria-hidden','false');
+  resultados.style.display='none'; resultados.setAttribute('aria-hidden','true');
+  comunicado.style.display='block'; comunicado.setAttribute('aria-hidden','false');
+  hideAllForms();
+  stopReporteTimer();
+  reporte.style.display='none'; reporte.setAttribute('aria-hidden','true');
+}
+function showForm(name){ pushView(name); menu.style.display='none'; hideAllForms(); if(forms[name]){ forms[name].style.display='block'; forms[name].setAttribute('aria-hidden','false'); } resultados.style.display='none'; comunicado.style.display='block'; }
+function displayResults(){ pushView('resultados'); menu.style.display='none'; hideAllForms(); resultados.style.display='block'; resultados.setAttribute('aria-hidden','false'); comunicado.style.display='none'; comunicado.setAttribute('aria-hidden','true'); stopSpeak(); window.scrollTo({ top: document.getElementById('resultados').offsetTop - 8, behavior: 'smooth' }); }
+function showReporte(){ pushView('reporte'); stopSpeak(); mainContent.style.display='none'; mainContent.setAttribute('aria-hidden','true'); reporte.style.display='block'; reporte.setAttribute('aria-hidden','false'); startReporteTimer(300); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+
+/* timer */
+function formatTime(seconds){ const m=Math.floor(seconds/60).toString().padStart(2,'0'); const s=(seconds%60).toString().padStart(2,'0'); return `${m}:${s}`; }
+function startReporteTimer(seconds){
+  stopReporteTimer();
+  reporteTotalSeconds = Math.max(1, Math.floor(seconds));
+  reporteRemainingSeconds = reporteTotalSeconds;
+  reporteTimerEl.textContent = formatTime(reporteRemainingSeconds);
+  updateProgressUI();
+  reporteTimerInterval = setInterval(()=>{
+    reporteRemainingSeconds--;
+    if(reporteRemainingSeconds < 0){ stopReporteTimer(); showTimeoutModal(); return; }
+    reporteTimerEl.textContent = formatTime(reporteRemainingSeconds);
+    updateProgressUI();
+  },1000);
+}
+function stopReporteTimer(){ if(reporteTimerInterval){ clearInterval(reporteTimerInterval); reporteTimerInterval=null; } reporteProgressFill.style.width='100%'; reporteProgressFill.setAttribute('aria-valuenow', reporteTotalSeconds || 300); reporteProgressLabel.textContent = '100% — ' + formatTime(reporteTotalSeconds || 300); }
+function updateProgressUI(){ if(!reporteTotalSeconds) return; const percent = Math.max(0, (reporteRemainingSeconds / reporteTotalSeconds) * 100); reporteProgressFill.style.width = percent.toFixed(2) + '%'; reporteProgressFill.setAttribute('aria-valuenow', reporteRemainingSeconds); reporteProgressFill.setAttribute('aria-valuemax', reporteTotalSeconds); reporteProgressLabel.textContent = Math.round(percent) + '% — ' + formatTime(reporteRemainingSeconds); }
+
+/* timeout modal */
+function showTimeoutModal(){ stopSpeak(); stopReporteTimer(); timeoutOverlay.style.display='flex'; timeoutOverlay.setAttribute('aria-hidden','false'); timeoutModal.focus(); if(autoReturnTimeoutHandle) clearTimeout(autoReturnTimeoutHandle); autoReturnTimeoutHandle = setTimeout(()=>{ closeTimeoutModalAndReturn(); },3500); }
+function closeTimeoutModalAndReturn(){ if(autoReturnTimeoutHandle){ clearTimeout(autoReturnTimeoutHandle); autoReturnTimeoutHandle=null; } timeoutOverlay.style.display='none'; timeoutOverlay.setAttribute('aria-hidden','true'); reporteTimerEl.textContent='05:00'; reporteProgressFill.style.width='100%'; reporteProgressLabel.textContent='100% — 05:00'; stopReporteTimer(); reporte.style.display='none'; reporte.setAttribute('aria-hidden','true'); mainContent.style.display='block'; showMenu(false); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+if(timeoutOk) timeoutOk.addEventListener('click', closeTimeoutModalAndReturn);
+if(timeoutClose) timeoutClose.addEventListener('click', closeTimeoutModalAndReturn);
+
+/* hide reporte and return */
+function hideReporteAndReturn(){ stopSpeak(); stopReporteTimer(); reporteTimerEl.textContent='05:00'; reporte.style.display='none'; reporte.setAttribute('aria-hidden','true'); mainContent.style.display='block'; showMenu(false); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+
+/* eventos / formularios */
+document.getElementById('openFiltros').addEventListener('click', ()=>showForm('filtros'));
+document.getElementById('openCodigo').addEventListener('click', ()=>showForm('codigo'));
+document.getElementById('openHuella').addEventListener('click', ()=>showForm('huella'));
+document.getElementById('volverFiltro').addEventListener('click', ()=>{ showMenu(); });
+document.getElementById('volverCodigo').addEventListener('click', ()=>{ showMenu(); });
+document.getElementById('volverHuella').addEventListener('click', ()=>{ showMenu(); });
+
+document.getElementById('consultarFiltro').addEventListener('click', ()=>{
+  const d=document.getElementById('distrito').value; const i=document.getElementById('instancia').value; const e=document.getElementById('especialidad').value; const a=document.getElementById('anio').value; const n=document.getElementById('nexp').value.trim(); const p=document.getElementById('parte').value.trim();
+  if(!d||!i||!e||!a||!n||!p){ alert('Complete los campos obligatorios: distrito, instancia, especialidad, año, N° expediente y parte.'); return; }
+  displayResults();
+});
+document.getElementById('consultarCodigo').addEventListener('click', ()=>{ const cod=document.getElementById('codigo').value.trim(); const cap=document.getElementById('captchaInput').value.trim().toUpperCase(); if(!cod){ alert('Ingrese el número de expediente'); return; } if(cap!=='4RJEGG'){ alert('El código mostrado no coincide.'); return; } displayResults(); });
+document.getElementById('verificarHuella').addEventListener('click', ()=>{ alert('Simulación: Verificación biométrica exitosa (RENIEC / ID GOB.PE).'); displayResults(); });
+document.getElementById('abrirExpediente').addEventListener('click', (e)=>{ e.preventDefault(); showReporte(); });
+if(document.getElementById('volverReporteBtn')) document.getElementById('volverReporteBtn').addEventListener('click', hideReporteAndReturn);
+
+/* TTS mejorado: lee absolutamente todo (document.body.innerText) en trozos manejables */
+let ttsOn = false;
+let ttsQueue = [];
+let currentUtterIndex = 0;
+
+function splitTextIntoChunks(text, maxLen = 1800){
+  const chunks = [];
+  let remaining = text.trim();
+  while(remaining.length > 0){
+    if(remaining.length <= maxLen){ chunks.push(remaining); break; }
+    let splitAt = -1;
+    const substr = remaining.slice(0, maxLen);
+    const lastPunc = Math.max(substr.lastIndexOf('. '), substr.lastIndexOf('? '), substr.lastIndexOf('! '));
+    if(lastPunc > Math.floor(maxLen * 0.4)) splitAt = lastPunc + 2;
+    if(splitAt === -1){
+      const lastSpace = substr.lastIndexOf(' ');
+      splitAt = lastSpace > 0 ? lastSpace : maxLen;
+    }
+    const part = remaining.slice(0, splitAt).trim();
+    chunks.push(part);
+    remaining = remaining.slice(splitAt).trim();
+  }
+  return chunks;
+}
+
+function speakAllText(text){
+  if(!('speechSynthesis' in window)) return;
+  stopSpeak();
+  const allText = (text || '').trim();
+  if(!allText) return;
+  const chunks = splitTextIntoChunks(allText, 1800);
+  ttsQueue = chunks.map(chunk=>{
+    const u = new SpeechSynthesisUtterance(chunk);
+    u.lang = 'es-PE';
+    u.rate = 1.0;
+    u.pitch = 1.0;
+    u.volume = 1.0;
+    return u;
+  });
+  currentUtterIndex = 0;
+  if(ttsQueue.length === 0) return;
+  ttsOn = true;
+  document.getElementById('ttsToggle').setAttribute('aria-pressed','true');
+
+  ttsQueue.forEach((u, idx) => {
+    u.onend = () => {
+      if(idx === ttsQueue.length - 1){
+        ttsOn = false;
+        document.getElementById('ttsToggle').setAttribute('aria-pressed','false');
+      }
+    };
+  });
+
+  function speakNext(i){
+    if(!ttsOn) return;
+    if(i >= ttsQueue.length) return;
+    const utter = ttsQueue[i];
+    utter.onend = () => {
+      currentUtterIndex = i + 1;
+      if(i + 1 < ttsQueue.length){
+        speakNext(i + 1);
+      } else {
+        ttsOn = false;
+        document.getElementById('ttsToggle').setAttribute('aria-pressed','false');
+      }
+    };
+    speechSynthesis.speak(utter);
+  }
+
+  speakNext(0);
+}
+
+function speak(text){
+  const toRead = (typeof text === 'string' && text.trim().length>0) ? text : document.body.innerText || document.body.textContent || '';
+  speakAllText(toRead);
+}
+
+function stopSpeak(){
+  if('speechSynthesis' in window){
+    speechSynthesis.cancel();
+    ttsOn = false;
+    ttsQueue = [];
+    currentUtterIndex = 0;
+    const tbtn = document.getElementById('ttsToggle');
+    if(tbtn) tbtn.setAttribute('aria-pressed','false');
+  }
+}
+
+document.getElementById('ttsToggle').addEventListener('click', ()=>{
+  if(ttsOn) stopSpeak(); else speak();
+});
+
+/* Visor de documentos: overlay grande */
+function buildDrivePreviewUrl(rawUrl){
+  try{
+    const m = rawUrl.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+    if(m && m[1]) return `https://drive.google.com/file/d/${m[1]}/preview`;
+    if(rawUrl.includes('/preview')) return rawUrl;
+    if(rawUrl.includes('/view')) return rawUrl.replace('/view','/preview');
+    return rawUrl;
+  }catch(e){ return rawUrl; }
+}
+let currentDocUrl = '';
+
+function openDocOverlay(rawUrl, title){
+  const preview = buildDrivePreviewUrl(rawUrl);
+  currentDocUrl = preview;
+  docViewerFrame.src = preview;
+  docViewerTitle.textContent = title || 'Documento';
+  docViewerOverlay.style.display = 'flex';
+  docViewerOverlay.setAttribute('aria-hidden','false');
+  docViewerClose.focus();
+}
+function closeDocOverlay(){
+  docViewerOverlay.style.display = 'none';
+  docViewerOverlay.setAttribute('aria-hidden','true');
+  docViewerFrame.src = 'about:blank';
+  currentDocUrl = '';
+}
+docViewerClose.addEventListener('click', closeDocOverlay);
+docViewerOpenNew.addEventListener('click', ()=>{ if(currentDocUrl) window.open(currentDocUrl,'_blank'); });
+
+/* attach handlers to doc buttons: open overlay */
+document.querySelectorAll('.doc-open-btn').forEach(btn=>{
+  btn.addEventListener('click', (e)=>{
+    e.preventDefault();
+    const url = btn.getAttribute('data-url');
+    const parentItem = btn.closest('.indice-item') || btn.closest('.seguimiento-item') || document.body;
+    const label = parentItem?.querySelector('.title')?.innerText || parentItem?.querySelector('.titulo')?.innerText || 'Documento';
+    openDocOverlay(url, label);
+  });
+});
+
+/* Esc key behavior */
+document.addEventListener('keydown', (e)=>{
+  if(e.key === 'Escape'){
+    if(docViewerOverlay.style.display === 'flex') closeDocOverlay();
+    if(timeoutOverlay.style.display === 'flex') closeTimeoutModalAndReturn();
+  }
+});
+
+/* initialize */
+showMenu(false);
+viewStack = []; updateBackBtn();
+
+/* Focus trap for overlay */
+docViewerOverlay.addEventListener('keydown', function(e){
+  if(e.key === 'Tab'){
+    const focusable = docViewerOverlay.querySelectorAll('button, [href], iframe');
+    if(!focusable.length) return;
+    const first = focusable[0], last = focusable[focusable.length-1];
+    if(e.shiftKey && document.activeElement === first){ e.preventDefault(); last.focus(); }
+    else if(!e.shiftKey && document.activeElement === last){ e.preventDefault(); first.focus(); }
+  }
+});
+</script>
+</body>
+</html>
